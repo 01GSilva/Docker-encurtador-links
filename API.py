@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import sessionmaker
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import declarative_base
-
+from fastapi.responses import RedirectResponse
 
 app = FastAPI() # criando instancia da aplicação
 
@@ -67,3 +67,18 @@ def encurtar_link(request: LinkRequest, db: Session = Depends(get_db())): # Ja r
     db.add(novo_link) # comunica a sessão para inserir um novo objeto no banco
     db.commit() # grava efetivamente no banco
     return {'link_curto': novo_codigo}
+
+
+# ===== Rota 2 ====================================================================================================
+@app.get('/{codigo_curto}') # Metodo Get, pois está buscando algo que ja existe
+def redirecionar(codigo_curto:str, db:Session = Depends(get_db())):
+    link = db.querry(Link).filter_by(codigo_curto=codigo_curto).first() # Busca filtrando pela coluna "codigo_curto"
+    
+    if not link: # Caso alguém acesse um código que não exista
+        return{'erro': 'Link não encontrado'}
+
+    resposta = RedirectResponse(url=link.url_completa) # Ferramenta do FastAPI que gera uma resposta de HTTP direta de redirecionamento
+
+    enviar_para_fila(codigo_curto) # "Fire and forget" que a API faz para a fila
+
+    return resposta # Devolve o redirecionamento
