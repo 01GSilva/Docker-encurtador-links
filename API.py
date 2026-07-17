@@ -1,17 +1,15 @@
-from fastapi import fastapi
-from pydantic import BaseModel
-import random 
-import string 
-from sqlalchemy import create_engine
-from sqlalchemy import sessionmaker
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import declarative_base
-from fastapi.responses import RedirectResponse
-import redis
 import json
+import random
+import string
 from datetime import datetime
+import redis
+from fastapi import FastAPI, Depends
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
-# ===== Configuração do Banco de Dados (Postgres) =================================================================================
+# ========== Configuração do Banco de Dados (Postgres) =====
 
 DATABASE_URL = "postgresql://usuario:senha@db:5432/encurtador" # endereço do banco de dados
 
@@ -27,7 +25,7 @@ def get_db(): # Função para abrir e fechar a sessão para liberar a conexão
     finally:
         db.close()
 
-# ===== Configuração da Fila (Redis) ============================================================================================
+# == Configuração da Fila (Redis) ==========
 
 redis_client = redis.Redis(host='fila', port=6379, decode_responses=True) # 'fila' como nome de serviço, porta padrão do Redis e decodificação devolvendo str
 
@@ -38,7 +36,7 @@ def enviar_para_fila(codigo_curto: str):
     }
     redis_client.rpush('fila_cliques', json.dumps(dados_clique)) # Insere um item no final da fila (rpush). Converte um dicionario Python em Json (json.dumbs)
 
-# ===== Modelo (Tabela) ======================================================================
+# == Modelo (Tabela) ==========
 
 class Link(Base):
     __tablename__ = 'links' # nome da tabela no banco de dados
@@ -47,24 +45,25 @@ class Link(Base):
     url_completa = Column(String, nullable=False) # Coluna da url completa (Banco impede o valor vazio)
     codigo_curto = Column(String, nullable=False, unique=True) # Coluna do link encurtado(O proprio banco impede valores repetidos)
 
+Base.metadata.create_all(engine) # cria a tabela Links somente se ela ainda não constar no banco. Caso exista, não faz nada
 
-# ===== Schema de entrada (validade) =======================================================================
+# == Schema de entrada (validade) ==========
 
 class LinkRequest(BaseModel):
     url_completa: str # "toda requisição precisa ter um campo chamado url_completa do tipo str"
 
 
-# ===== Função auxiliar para gerar código =======================================================================
+# == Função auxiliar para gerar código ==========
 
 def gerar_codigo_curto(tamanho: int=6) -> str:
     caracteres = string.ascii_letters + string.digits # pool de caracteres possiveis (letras + numeros)
     return ''.join(random.choices(caracteres, k=tamanho)) # devolve uma lista de caracteres soltos, unificados depois em uma string pelo join
 
-# ===== Aplicação =======================================================================
+# == Aplicação ==========
 
 app = FastAPI()
 
-# === Rota 1 ===
+# ===== Rota 1 ==========
 
 @app.post('/encurtar') # Quando chegar uma requisição do tipo POST no endereço /encurtar, execute a função abaixo
 def encurtar_link(request: LinkRequest, db: Session = Depends(get_db())): # Ja recebe os dados validados e prontos para uso (parametro request, tipo LinkRequest)
@@ -85,7 +84,7 @@ def encurtar_link(request: LinkRequest, db: Session = Depends(get_db())): # Ja r
     db.commit() # grava efetivamente no banco
     return {'link_curto': novo_codigo}
 
-# === Rota 2 ===
+# ===== Rota 2 ==========
 
 @app.get('/{codigo_curto}') # Metodo Get, pois está buscando algo que ja existe
 def redirecionar(codigo_curto:str, db:Session = Depends(get_db())):
