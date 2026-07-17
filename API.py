@@ -7,6 +7,9 @@ from sqlalchemy import sessionmaker
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import declarative_base
 from fastapi.responses import RedirectResponse
+import redis
+import json
+from datetime import datetime
 
 app = FastAPI() # criando instancia da aplicação
 
@@ -45,6 +48,18 @@ class Link(Base):
     id = Column(Integer, primary_key=True) # Coluna id da tabela (tipo inteiro e chave primaria)
     url_completa = Column(String, nullable=False) # Coluna da url completa (Banco impede o valor vazio)
     codigo_curto = Column(String, nullable=False, unique=True) # Coluna do link encurtado(O proprio banco impede valores repetidos)
+
+
+
+# ===== Configuração e função da Fila ============================================================================================
+redis_client = redis.Redis(host='fila', port=6379, decode_responses=True) # 'fila' como nome de serviço, porta padrão do Redis e decodificação devolvendo str
+
+def enviar_para_fila(codigo_curto: str):
+    dados_clique = {
+        'codigo_curto': codigo_curto,
+        'timestamp': datetime.utcnow().isoformat() # transforma o momento UTC atual em um texto padronizado
+    }
+    redis_client.rpush('fila_cliques', json.dumps(dados_clique)) # Insere um item no final da fila (rpush). Converte um dicionario Python em Json (json.dumbs)
 
 
 
