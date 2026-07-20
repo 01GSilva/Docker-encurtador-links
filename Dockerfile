@@ -17,4 +17,6 @@ RUN groupadd -r apiuser \
 # Troca para o usuario
 USER apiuser
 
-CMD ["python", "API.py"]
+EXPOSE 8000
+
+CMD ["uvicorn", "API:app", "--host", "0.0.0.0", "--port", "8000"]
