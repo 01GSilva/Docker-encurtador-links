@@ -23,7 +23,7 @@ Base.metadata.create_all(engine)
 
 # === Configuração da fila ===
 
-redis_client = redis.Redis(host='fila', port=6379, decode_response=True)
+redis_client = redis.Redis(host='fila', port=6379, decode_responses=True)
 
 # === Loop principal ===
 
@@ -41,7 +41,7 @@ def processar_cliques():
             )
             db.add(novo_registro)
             db.commit()
-            print(f'Clique registrado: {dados_clique['codigo_curto']}')
+            print(f"Clique registrado: {dados_clique['codigo_curto']}")
         finally:
             db.close()
 

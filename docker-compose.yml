@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: usuario
+      POSTGRES_PASSWORD: senha
+      POSTGRES_DB: encurtador
+    volumes:
+      - dados_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usuario -d encurtador"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  fila:
+    image: redis:7
+
+  api:
+    build:
+      context: .
+      dockerfile: api.Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      fila:
+        condition: service_started
+  
+  worker:
+    build:
+      context: .
+      dockerfile: worker.Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      fila:
+        condition: service_started
+
+volumes:
+  dados_postgres:

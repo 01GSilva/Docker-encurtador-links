@@ -66,7 +66,7 @@ app = FastAPI()
 # ===== Rota 1 ==========
 
 @app.post('/encurtar') # Quando chegar uma requisição do tipo POST no endereço /encurtar, execute a função abaixo
-def encurtar_link(request: LinkRequest, db: Session = Depends(get_db())): # Ja recebe os dados validados e prontos para uso (parametro request, tipo LinkRequest)
+def encurtar_link(request: LinkRequest, db: Session = Depends(get_db)): # Ja recebe os dados validados e prontos para uso (parametro request, tipo LinkRequest)
     link_existente = db.querry(Link).filter_by(url_completa=request.url_completa).first()
     # Verifica se ja existe a URL completa no banco de dados
     if link_existente:
@@ -87,7 +87,7 @@ def encurtar_link(request: LinkRequest, db: Session = Depends(get_db())): # Ja r
 # ===== Rota 2 ==========
 
 @app.get('/{codigo_curto}') # Metodo Get, pois está buscando algo que ja existe
-def redirecionar(codigo_curto:str, db:Session = Depends(get_db())):
+def redirecionar(codigo_curto:str, db:Session = Depends(get_db)):
     link = db.querry(Link).filter_by(codigo_curto=codigo_curto).first() # Busca filtrando pela coluna "codigo_curto"
     
     if not link: # Caso alguém acesse um código que não exista
