@@ -30,8 +30,12 @@ redis_client = redis.Redis(host='fila', port=6379, decode_responses=True)
 def processar_cliques():
     while True:
         try:
-            _, dado_bruto = redis_client.blpop('fila_cliques') # espera pausado até algum item aparecer na fila
-            # retorna tupla com valores 'nome da lista de origem' e 'item'. O nome da lista de origem é ignorado pela convenção '_' (fila_cliques).
+            resultado = redis_client.blpop('fila_cliques', timeout=5)
+
+            if resultado is None:
+                continue
+
+            _, dado_bruto = resultado
             dados_clique = json.loads(dado_bruto) # reconstrói o dicionario python original
 
             db = SessionLocal()
